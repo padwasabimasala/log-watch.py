@@ -47,6 +47,7 @@ def tailf(fname):
 
 # 0. Consume an actively written-to w3c-formatted HTTP access log
 # (https://en.wikipedia.org/wiki/Common_Log_Format). 
+# Example: 127.0.0.1 - mary [09/May/2018:16:00:42 +0000] "GET /api/user HTTP/1.0" 200 1234
 # - It should default to reading /var/log/access.log 
 # - and be overridable
 #
