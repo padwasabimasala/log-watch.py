@@ -43,7 +43,7 @@ def tailf(fname):
         line = fp.readline()
         if line:
             yield line.strip()
-        time.sleep(0.1)
+        time.sleep(0.001)
 
 # 0. Consume an actively written-to w3c-formatted HTTP access log
 # (https://en.wikipedia.org/wiki/Common_Log_Format). 
@@ -52,7 +52,8 @@ def tailf(fname):
 #
 # 1. Display stats every 10s about the traffic during those 10s: 
 # - the sections of the web site with the most hits
-# - interesting summary statistics on # the traffic as a whole. 
+# - interesting summary statistics on the traffic as a whole. 
+# 
 #   A section is defined as being what's before the second '/' in the path. 
 #   For example, the section for "http://my.site.com/pages/create” is
 #   "http://my.site.com/pages". 
@@ -70,6 +71,23 @@ def tailf(fname):
 # recovered.  
 #
 # 4. Write a test for the alerting logic.
+
+#
+# file = arg || default
+# stats_interval = arg || default
+# traffic_interval = arg || default
+# 
+# stats_timer = traffic_timer = now
+# for line in tail(file):
+#   stats = parse(line)
+#   collect(stats)
+#   if now - stats_timer >= stats_interval:
+#     print_stats
+#     stats_timer = now
+#   if now - traffic_timer >= traffic_interval:
+#     print_alerts
+#     traffic_time = now
+#     clear_stats
 
 if __name__ == '__main__':
     try:
