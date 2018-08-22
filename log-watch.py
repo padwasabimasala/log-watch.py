@@ -1,6 +1,7 @@
 import re
 import sys
 import time
+from urllib.parse import urlparse
 
 # https://gist.github.com/sumeetpareek/9644255
 class Parser:
@@ -22,12 +23,14 @@ class Parser:
     """
     >>> Parser.parse("xyz") is None
     True
-    >>> Parser.parse(r'155.80.44.115 IT - [2015-09-02 11:58:49.801640] "GET /cms/2013/10/21/nftables-to-replace-iptables-firewall-facility-in-upcoming-linux-kernel/feed/ HTTP/1.1" 200 475 "-" "Mozilla/5.0 (compatible; MJ12bot/v1.4.5; http://www.majestic12.co.uk/bot.php?+)" www.example.com 124.165.3.7 443 redirect-handler - + "-" VebIWcCoAwcAADRbdGsAAAAD TLSv1 AES256-SHA 501 1007 -% 23735 833 0 0 0 0') == {'host': '155.80.44.115', 'ident': 'IT', 'user': '-', 'date': '2015-09-02', 'time': '11:58:49.801640', 'method': 'GET', 'path': '/cms/2013/10/21/nftables-to-replace-iptables-firewall-facility-in-upcoming-linux-kernel/feed/', 'protocol': 'HTTP/1.1', 'status': '200', 'size': '475', 'referrer': '-', 'agent': 'Mozilla/5.0 (compatible; MJ12bot/v1.4.5; http://www.majestic12.co.uk/bot.php?+)" www.example.com 124.165.3.7 443 redirect-handler - + "-'}
+    >>> Parser.parse(r'155.80.44.115 IT - [2015-09-02 11:58:49.801640] "GET /cms/2013/10/21/nftables-to-replace-iptables-firewall-facility-in-upcoming-linux-kernel/feed/ HTTP/1.1" 200 475 "-" "Mozilla/5.0 (compatible; MJ12bot/v1.4.5; http://www.majestic12.co.uk/bot.php?+)" www.example.com 124.165.3.7 443 redirect-handler - + "-" VebIWcCoAwcAADRbdGsAAAAD TLSv1 AES256-SHA 501 1007 -% 23735 833 0 0 0 0') == {'host': '155.80.44.115', 'ident': 'IT', 'user': '-', 'date': '2015-09-02', 'time': '11:58:49.801640', 'method': 'GET', 'path': '/cms/2013/10/21/nftables-to-replace-iptables-firewall-facility-in-upcoming-linux-kernel/feed/', 'protocol': 'HTTP/1.1', 'status': '200', 'size': '475', 'referrer': '-', 'agent': 'Mozilla/5.0 (compatible; MJ12bot/v1.4.5; http://www.majestic12.co.uk/bot.php?+)" www.example.com 124.165.3.7 443 redirect-handler - + "-', 'section': '/cms'}
     True
     """  
     match = Parser.pattern.match(line)
     if match:
-      return match.groupdict()
+      d = match.groupdict()
+      d['section'] = '/'.join(urlparse(d['path']).path.split('/')[0:2])
+      return d
     return None
 
 # https://agrrh.com/2018/tail-follow-in-python
