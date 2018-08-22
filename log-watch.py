@@ -76,6 +76,12 @@ def tailf(fname):
 #
 # 4. Write a test for the alerting logic.
 
+# Notes/
+# Section size could be configured
+# sleep could be configured or null
+# timer in another thread?
+# run profiler
+
 #
 # file = arg || default
 # stats_interval = arg || default
@@ -93,7 +99,7 @@ def tailf(fname):
 #     traffic_time = now
 #     clear_stats
 
-if __name__ == '__main__':
+def main():
     try:
         fname = sys.argv[1]
     except IndexError:
@@ -103,3 +109,8 @@ if __name__ == '__main__':
     for line in tailf(fname):
         d = Parser.parse(line)
         print(d)
+
+if __name__ == '__main__':
+  #import profile
+  #profile.run("main()")
+  main()
