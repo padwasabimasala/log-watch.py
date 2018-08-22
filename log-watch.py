@@ -1,11 +1,12 @@
 import re
 
+# https://gist.github.com/sumeetpareek/9644255
 class Parser:
   parts = [
       r'(?P<host>\S+)',                   # host %h
       r'(?P<ident>\S+)',                  # ident %l
       r'(?P<user>\S+)',                   # user %u
-      r'\[(?P<date>[0-9]{4}-[0-9]{2}-[0-9]{2})\s+(?P<time>.+)\]',                # time %t
+      r'\[(?P<date>[0-9]{4}-[0-9]{2}-[0-9]{2})\s+(?P<time>.+)\]',          # time %t
       r'"(?P<method>.*)\s+(?P<path>.*)\s+(?P<protocol>.*)"',               # request "%r"
       r'(?P<status>[0-9]+)',              # status %>s
       r'(?P<size>\S+)',                   # size %b (careful, can be '-')
@@ -26,4 +27,3 @@ class Parser:
     if match:
       return match.groupdict()
     return None
-
