@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 
 # https://gist.github.com/sumeetpareek/9644255
 class Parser:
+  # host ident authuser date request status bytes
   parts = [
       r'(?P<host>\S+)',                   # host %h
       r'(?P<ident>\S+)',                  # ident %l
@@ -13,8 +14,6 @@ class Parser:
       r'"(?P<method>.*)\s+(?P<path>.*)\s+(?P<protocol>.*)"',               # request "%r"
       r'(?P<status>[0-9]+)',              # status %>s
       r'(?P<size>\S+)',                   # size %b (careful, can be '-')
-      r'"(?P<referrer>.*)"',              # referrer "%{Referer}i"
-      r'"(?P<agent>.*)"',                 # user agent "%{User-agent}i"
       ]
   pattern = re.compile(r'\s+'.join(parts))
 
@@ -23,7 +22,7 @@ class Parser:
     """
     >>> Parser.parse("xyz") is None
     True
-    >>> Parser.parse(r'155.80.44.115 IT - [2015-09-02 11:58:49.801640] "GET /cms/2013/10/21/nftables-to-replace-iptables-firewall-facility-in-upcoming-linux-kernel/feed/ HTTP/1.1" 200 475 "-" "Mozilla/5.0 (compatible; MJ12bot/v1.4.5; http://www.majestic12.co.uk/bot.php?+)" www.example.com 124.165.3.7 443 redirect-handler - + "-" VebIWcCoAwcAADRbdGsAAAAD TLSv1 AES256-SHA 501 1007 -% 23735 833 0 0 0 0') == {'host': '155.80.44.115', 'ident': 'IT', 'user': '-', 'date': '2015-09-02', 'time': '11:58:49.801640', 'method': 'GET', 'path': '/cms/2013/10/21/nftables-to-replace-iptables-firewall-facility-in-upcoming-linux-kernel/feed/', 'protocol': 'HTTP/1.1', 'status': '200', 'size': '475', 'referrer': '-', 'agent': 'Mozilla/5.0 (compatible; MJ12bot/v1.4.5; http://www.majestic12.co.uk/bot.php?+)" www.example.com 124.165.3.7 443 redirect-handler - + "-', 'section': '/cms'}
+    >>> Parser.parse(r'155.80.44.115 - bobbyt [2015-09-02 11:58:49.801640] "GET /cms/2013/10/21/nftables HTTP/1.1" 200 475') == {'host': '155.80.44.115', 'ident': '-', 'user': 'bobbyt', 'date': '2015-09-02', 'time': '11:58:49.801640', 'method': 'GET', 'path': '/cms/2013/10/21/nftables', 'protocol': 'HTTP/1.1', 'status': '200', 'size': '475', 'section': '/cms'}
     True
     """  
     match = Parser.pattern.match(line)
@@ -99,19 +98,24 @@ def tailf(fname):
 #     traffic_time = now
 #     clear_stats
 
+class StatsCollector:
+  """
+  >>> scol = StatsCollector()
+  """
+
 DEFAULT_LOG_FILE = '/var/log/access.log'
 
-def main():
-    try:
-        fname = sys.argv[1]
-    except IndexError:
-        fname = DEFAULT_LOG_FILE
-
-    for line in tailf(fname):
-        d = Parser.parse(line)
-        print(d)
+def main(fname):
+  for line in tailf(fname):
+      d = Parser.parse(line)
+      print(d)
 
 if __name__ == '__main__':
+  try:
+      fname = sys.argv[1]
+  except IndexError:
+      fname = DEFAULT_LOG_FILE
+
   #import profile
   #profile.run("main()")
-  main()
+  main(fname)
