@@ -45,7 +45,7 @@ def tailf(fname):
         line = fp.readline()
         if line:
             yield line.strip()
-        time.sleep(0.001)
+        #time.sleep(0.001)
 
 # [x] 0. Consume an actively written-to w3c-formatted HTTP access log
 # (https://en.wikipedia.org/wiki/Common_Log_Format). 
@@ -54,7 +54,7 @@ def tailf(fname):
 # [x] - and be overridable
 #
 # [ ] 1. Display stats every 10s about the traffic during those 10s: 
-# [ ] - the sections of the web site with the most hits
+# [x] - the sections of the web site with the most hits
 # [ ] - interesting summary statistics on the traffic as a whole. 
 # 
 #   A section is defined as being what's before the second '/' in the path. 
@@ -81,23 +81,6 @@ def tailf(fname):
 # timer in another thread?
 # run profiler
 
-#
-# file = arg || default
-# stats_interval = arg || default
-# traffic_interval = arg || default
-# 
-# stats_timer = traffic_timer = now
-# for line in tail(file):
-#   stats = parse(line)
-#   collect(stats)
-#   if now - stats_timer >= stats_interval:
-#     print_stats
-#     stats_timer = now
-#   if now - traffic_timer >= traffic_interval:
-#     print_alerts
-#     traffic_time = now
-#     clear_stats
-
 class StatsCollector:
   """
   >>> scol = StatsCollector()
@@ -119,10 +102,50 @@ class StatsCollector:
 
 DEFAULT_LOG_FILE = '/var/log/access.log'
 
+#
+# file = arg || default
+# stats_interval = arg || default
+# traffic_interval = arg || default
+# 
+# stats_timer = traffic_timer = now
+# for line in tail(file):
+#   stats = parse(line)
+#   collect(stats)
+#   if now - stats_timer >= stats_interval:
+#     print_stats
+#     stats_timer = now
+#   if now - traffic_timer >= traffic_interval:
+#     print_alerts
+#     traffic_time = now
+#     clear_stats
+
+class Timer:
+  """
+  >>> t = Timer(1, lambda: print("Times up"))
+  >>> t.check(time.time())
+  >>> t.check(time.time()+5)
+  Times up
+  """
+
+  def __init__(self, seconds, callback):
+    self.start = time.time()
+    self.seconds = seconds
+    self.callback = callback
+
+  def check(self, curtime):
+    if curtime - self.start >= self.seconds:
+      self.start = time.time()
+      self.callback()
+
 def main(fname):
+  col = StatsCollector()
+  stats_timer = Timer(1, lambda: print(col.stats))
+
   for line in tailf(fname):
       d = Parser.parse(line)
-      print(d)
+      if d:
+        col.collect(d)
+      stats_timer.check(time.time())
 
 if __name__ == '__main__':
   try:
