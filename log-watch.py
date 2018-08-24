@@ -48,11 +48,11 @@ def tailf(fname):
             yield line.strip()
         time.sleep(0.001)
 
-# [ ] 0. Consume an actively written-to w3c-formatted HTTP access log
+# [x] 0. Consume an actively written-to w3c-formatted HTTP access log
 # (https://en.wikipedia.org/wiki/Common_Log_Format). 
 # Example: 127.0.0.1 - mary [09/May/2018:16:00:42 +0000] "GET /api/user HTTP/1.0" 200 1234
-# [ ] - It should default to reading /var/log/access.log 
-# [ ] - and be overridable
+# [x] - It should default to reading /var/log/access.log 
+# [x] - and be overridable
 #
 # [ ] 1. Display stats every 10s about the traffic during those 10s: 
 # [ ] - the sections of the web site with the most hits
@@ -99,12 +99,13 @@ def tailf(fname):
 #     traffic_time = now
 #     clear_stats
 
+DEFAULT_LOG_FILE = '/var/log/access.log'
+
 def main():
     try:
         fname = sys.argv[1]
     except IndexError:
-        print('File not specified')
-        sys.exit(1)
+        fname = DEFAULT_LOG_FILE
 
     for line in tailf(fname):
         d = Parser.parse(line)
