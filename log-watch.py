@@ -101,7 +101,21 @@ def tailf(fname):
 class StatsCollector:
   """
   >>> scol = StatsCollector()
+  >>> scol.collect(dict(section= '/abc'))
+  >>> scol.collect(dict(section= '/abc'))
+  >>> scol.collect(dict(section= '/xyz'))
+  >>> scol.stats
+  {'/abc': 2, '/xyz': 1}
   """
+  def __init__(self):
+    self.stats = {}
+
+  def collect(self, stats):
+    try:
+      self.stats[stats['section']] += 1
+    except KeyError:
+      self.stats[stats['section']] = 1
+
 
 DEFAULT_LOG_FILE = '/var/log/access.log'
 
