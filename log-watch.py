@@ -101,27 +101,13 @@ class StatsCollector:
 
 
 DEFAULT_LOG_FILE = '/var/log/access.log'
-
-#
-# file = arg || default
-# stats_interval = arg || default
-# traffic_interval = arg || default
-# 
-# stats_timer = traffic_timer = now
-# for line in tail(file):
-#   stats = parse(line)
-#   collect(stats)
-#   if now - stats_timer >= stats_interval:
-#     print_stats
-#     stats_timer = now
-#   if now - traffic_timer >= traffic_interval:
-#     print_alerts
-#     traffic_time = now
-#     clear_stats
+DEFAULT_STATS_INTERVAL = 10
+DEFAULT_TRAFFIC_INTERVAL = 120 
+DEFAULT_HIGH_TRAFFIC_THRESHOLD = 10
 
 class Timer:
   """
-  >>> t = Timer(1, lambda: print("Times up"))
+  >>> t = Timer(1, lambda t: print("Times up"))
   >>> t.check(time.time())
   >>> t.check(time.time()+5)
   Times up
@@ -133,19 +119,62 @@ class Timer:
     self.callback = callback
 
   def check(self, curtime):
-    if curtime - self.start >= self.seconds:
+    elapsed_time = curtime - self.start
+    if elapsed_time >= self.seconds:
       self.start = time.time()
-      self.callback()
+      self.callback(elapsed_time)
+
+class HighTrafficAlert:
+  # req/secs
+  """
+  >>> cur_time = 1535088782.4119601
+  >>> hta = HighTrafficAlert(10)
+  >>> hta.check(10, 100, cur_time)
+  >>> hta.check(600, 60, cur_time)
+  High traffic generated an alert - hits = 10.0, triggered at 23:33:02
+  >>> hta.check(1400, 70, cur_time)
+  High traffic generated an alert - hits = 20.0, triggered at 23:33:02
+  >>> hta.check(140, 70, cur_time)
+  High traffic recovered at 23:33:02
+  >>> hta.check(140, 70, cur_time)
+  >>> hta.check(140, 70, cur_time)
+  >>> hta.check(1400, 70, cur_time)
+  High traffic generated an alert - hits = 20.0, triggered at 23:33:02
+  """
+
+  warning = "High traffic generated an alert - hits = {value}, triggered at {time}"
+  recovery = "High traffic recovered at {time}"
+
+  def fmt_time(self, t):
+    return time.strftime("%H:%M:%S",time.localtime(t))
+
+  def __init__(self, threshold):
+    self.threshold = threshold
+    self.switch = False
+
+  def check(self, reqs, elapsed_time, cur_time):
+    reqs_per_sec = (reqs / elapsed_time)
+    if reqs_per_sec >= self.threshold:
+      self.switch = True
+      print(self.warning.format(**dict(value=reqs_per_sec, time=self.fmt_time(cur_time))))
+    else:
+      if self.switch:
+        print(self.recovery.format(**dict(time=self.fmt_time(cur_time))))
+      self.switch = False
+  
 
 def main(fname):
   col = StatsCollector()
-  stats_timer = Timer(1, lambda: print(col.stats))
+  stats_timer = Timer(1, lambda t: print(col.stats))
+  traffic_timer = Timer(5, lambda t: print(col.stats))
 
   for line in tailf(fname):
       d = Parser.parse(line)
       if d:
         col.collect(d)
-      stats_timer.check(time.time())
+      now = time.time()
+      stats_timer.check(now)
+      traffic_timer.check(now)
 
 if __name__ == '__main__':
   try:
