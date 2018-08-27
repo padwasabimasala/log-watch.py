@@ -104,6 +104,12 @@ class Timer:
       return True
     return False
 
+class Display():
+  def show_summary(self, rollups):
+    print("Traffic Summary requests: XXX (ave XXX/sec) bytes out: XXX 500s: XXX")
+    for ru in rollups:
+      print("{section} requests: {requests} bytes out: {bytesout} 500s: {errors}".format(**ru))
+
 class HighTrafficAlert:
   # req/secs
   """
@@ -177,6 +183,7 @@ DEFAULT_HIGH_TRAFFIC_THRESHOLD = 10
 
 def main(fname):
   col = SampleCollector()
+  display = Display()
   summary_timer = Timer(1)
   alert_timer = Timer(5)
 
@@ -184,7 +191,8 @@ def main(fname):
       samples = Parser.parse(line)
       col.collect(samples)
       if summary_timer.is_done():
-        print(col.stats)
+        rollups = col.rollup()
+        display.show_summary(rollups)
         if alert_timer.is_done():
           print("Alert!")
 
