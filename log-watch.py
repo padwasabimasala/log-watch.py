@@ -67,22 +67,27 @@ class StatsCollector:
 
 class Timer:
   """
-  >>> t = Timer(1, lambda t: print("Times up"))
-  >>> t.check(time.time())
-  >>> t.check(time.time()+5)
-  Times up
+  >>> t = Timer(0.1)
+  >>> t.is_done()
+  False
+  >>> time.sleep(0.1)
+  >>> t.is_done()
+  True
+  >>> t = Timer(10)
+  >>> t.is_done(time.time()+10)
+  True
   """
 
-  def __init__(self, seconds, callback):
+  def __init__(self, seconds):
     self.start = time.time()
     self.seconds = seconds
-    self.callback = callback
 
-  def check(self, curtime):
-    elapsed_time = curtime - self.start
+  def is_done(self, curtime=None):
+    elapsed_time = (curtime or time.time()) - self.start
     if elapsed_time >= self.seconds:
       self.start = time.time()
-      self.callback(elapsed_time)
+      return True
+    return False
 
 class HighTrafficAlert:
   # req/secs
@@ -163,16 +168,17 @@ DEFAULT_HIGH_TRAFFIC_THRESHOLD = 10
 
 def main(fname):
   col = StatsCollector()
-  stats_timer = Timer(1, lambda t: print(col.stats))
-  traffic_timer = Timer(5, lambda t: print(col.stats))
+  summary_timer = Timer(1)
+  alert_timer = Timer(5)
 
   for line in tailf(fname):
       d = Parser.parse(line)
       if d:
         col.collect(d)
-      now = time.time()
-      stats_timer.check(now)
-      traffic_timer.check(now)
+      if summary_timer.is_done():
+        print(col.stats)
+        if alert_timer.is_done():
+          print("Alert!")
 
 if __name__ == '__main__':
   try:
