@@ -153,13 +153,16 @@ class Display():
       print("{section} requests: {requests} bytes out: {bytesout} 500s: {errors}".format(**ru))
 
   def show_alert(self, value):
-    print("High traffic generated an alert - hits = {0}, triggered at {1}".format(value, time=time.time()))
+    print("High traffic generated an alert - hits = {0}, triggered at {1}".format(int(value), self._curtime()))
 
   def show_alert_resolution(self, value):
-    print("High traffic recovered at {0}".format(time=time.time()))
+    print("High traffic recovered at {0}".format(self._curtime()))
 
   def _reqs_ave(self, reqs):
     return int(reqs / (time.time() - self.start_time))
+
+  def _curtime(self):
+    return time.strftime("%H:%M:%S",time.localtime(time.time()))
 
 # [x] 0. Consume an actively written-to w3c-formatted HTTP access log
 # (https://en.wikipedia.org/wiki/Common_Log_Format). 
@@ -236,7 +239,7 @@ def main(fname):
         display.show_summary(rollup, col.totals)
         elapsed_time = alert_timer.is_done()
         if elapsed_time: 
-          htm.check(elapsed_time)
+          htm.check(col.subtotal()['requests']/elapsed_time)
 
 if __name__ == '__main__':
   try:
