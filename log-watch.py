@@ -67,6 +67,11 @@ class SampleCollector:
   {'requests': 6, 'bytesout': 390, 'errors': 2}
   >>> scol.totals
   {'requests': 6, 'bytesout': 390, 'errors': 2}
+  >>> scol.clear()
+  >>> scol.rollups
+  []
+  >>> scol.totals
+  {'requests': 6, 'bytesout': 390, 'errors': 2}
   """
   def __init__(self):
     self.samples = []
@@ -92,6 +97,8 @@ class SampleCollector:
           subt[key] += ru[key]
     return subt
 
+  def clear(self):
+    self.rollups = []
 
   def __calc_rollup_and_totals(self, samples):
     all = {}
@@ -180,13 +187,13 @@ class Display():
 #
 # [x] 2. Make sure a user can keep the app running and monitor the log file continuously 
 #
-# [ ] 3. Whenever total traffic for the past 2 minutes exceeds a certain number on average, add
+# [x] 3. Whenever total traffic for the past 2 minutes exceeds a certain number on average, add
 # a message saying that “High traffic generated an alert - hits = {value},
 # triggered at {time}”. 
-# [ ] - The default threshold should be 10 requests per second
+# [x] - The default threshold should be 10 requests per second
 # [ ] - it should be overridable.  
 # 
-# [ ] 4. Whenever the total traffic drops again below that value on average for the
+# [x] 4. Whenever the total traffic drops again below that value on average for the
 # past 2 minutes, print or displays another message detailing when the alert
 # recovered.  
 #
@@ -240,6 +247,7 @@ def main(fname):
         elapsed_time = alert_timer.is_done()
         if elapsed_time: 
           htm.check(col.subtotal()['requests']/elapsed_time)
+          col.clear()
 
 if __name__ == '__main__':
   try:
