@@ -63,6 +63,8 @@ class SampleCollector:
   [{'section': '/xyz', 'requests': 2, 'bytesout': 175, 'errors': 0}, {'section': '/cms', 'requests': 1, 'bytesout': 20, 'errors': 1}]
   >>> scol.rollups
   [[{'section': '/cms', 'requests': 2, 'bytesout': 120, 'errors': 1}, {'section': '/xyz', 'requests': 1, 'bytesout': 75, 'errors': 0}], [{'section': '/xyz', 'requests': 2, 'bytesout': 175, 'errors': 0}, {'section': '/cms', 'requests': 1, 'bytesout': 20, 'errors': 1}]]
+  >>> scol.subtotal()
+  {'requests': 6, 'bytesout': 390, 'errors': 2}
   >>> scol.totals
   {'requests': 6, 'bytesout': 390, 'errors': 2}
   """
@@ -81,6 +83,15 @@ class SampleCollector:
     rollup = self.__calc_rollup_and_totals(samples)
     self.rollups.append(rollup)
     return rollup
+
+  def subtotal(self):
+    subt = dict(requests=0, bytesout=0, errors=0)
+    for rollup in self.rollups:
+      for ru in rollup:
+        for key in subt:
+          subt[key] += ru[key]
+    return subt
+
 
   def __calc_rollup_and_totals(self, samples):
     all = {}
@@ -144,7 +155,7 @@ class Display():
   def show_alert(self, value):
     print("High traffic generated an alert - hits = {0}, triggered at {1}".format(value, time=time.time()))
 
-  def show_alert_resolution(self):
+  def show_alert_resolution(self, value):
     print("High traffic recovered at {0}".format(time=time.time()))
 
   def _reqs_ave(self, reqs):
@@ -215,14 +226,14 @@ def main(fname):
   display = Display()
   summary_timer = Timer(1)
   alert_timer = Timer(5)
-  htm = HighTrafficMonitor(threshold=10, alert=lambda x: display.show_alert(x), resolve=display.show_alert_resolution)
+  htm = HighTrafficMonitor(threshold=10, alert=display.show_alert, resolve=display.show_alert_resolution)
 
   for line in tailf(fname):
       samples = Parser.parse(line)
       col.collect(samples)
       if summary_timer.is_done():
-        rollups = col.rollup()
-        display.show_summary(rollups, col.totals)
+        rollup = col.rollup()
+        display.show_summary(rollup, col.totals)
         elapsed_time = alert_timer.is_done()
         if elapsed_time: 
           htm.check(elapsed_time)
