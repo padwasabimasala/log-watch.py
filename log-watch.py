@@ -46,24 +46,34 @@ def tailf(fname):
       if line:
           yield line.strip()
 
-class StatsCollector:
+class SampleCollector:
+  # {'host': '155.80.44.115', 'ident': '-', 'user': 'bobbyt', 'date': '2015-09-02', 'time': '11:58:49.801640', 'method': 'GET', 'path': '/cms/2013/10/21/nftables', 'protocol': 'HTTP/1.1', 'status': '200', 'size': '475', 'section': '/cms'}
+  # host, user, method, status, size section
   """
-  >>> scol = StatsCollector()
-  >>> scol.collect(dict(section= '/abc'))
-  >>> scol.collect(dict(section= '/abc'))
-  >>> scol.collect(dict(section= '/xyz'))
-  >>> scol.stats
-  {'/abc': 2, '/xyz': 1}
+  >>> scol = SampleCollector()
+  >>> scol.collect(None)
+  >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='200', size='475', section='/cms'))
+  >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='200', size='475', section='/xyz'))
+  >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='200', size='475', section='/cms'))
+  >>> scol.rollup()
+  {'/cms': 2, '/xyz': 1}
   """
   def __init__(self):
-    self.stats = {}
+    self.samples = []
+    self.rollups = []
 
-  def collect(self, stats):
-    try:
-      self.stats[stats['section']] += 1
-    except KeyError:
-      self.stats[stats['section']] = 1
+  def rollup(self):
+    ru = {}
+    for sample in self.samples:
+      try:
+        ru[sample['section']] += 1
+      except KeyError:
+        ru[sample['section']] = 1
+    return ru
 
+  def collect(self, sample):
+    if sample:
+      self.samples.append(sample)
 
 class Timer:
   """
@@ -161,14 +171,13 @@ DEFAULT_TRAFFIC_INTERVAL = 120
 DEFAULT_HIGH_TRAFFIC_THRESHOLD = 10
 
 def main(fname):
-  col = StatsCollector()
+  col = SampleCollector()
   summary_timer = Timer(1)
   alert_timer = Timer(5)
 
   for line in tailf(fname):
-      d = Parser.parse(line)
-      if d:
-        col.collect(d)
+      samples = Parser.parse(line)
+      col.collect(samples)
       if summary_timer.is_done():
         print(col.stats)
         if alert_timer.is_done():
