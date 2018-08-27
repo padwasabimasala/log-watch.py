@@ -47,29 +47,34 @@ def tailf(fname):
           yield line.strip()
 
 class SampleCollector:
-  # {'host': '155.80.44.115', 'ident': '-', 'user': 'bobbyt', 'date': '2015-09-02', 'time': '11:58:49.801640', 'method': 'GET', 'path': '/cms/2013/10/21/nftables', 'protocol': 'HTTP/1.1', 'status': '200', 'size': '475', 'section': '/cms'}
   # host, user, method, status, size section
   """
   >>> scol = SampleCollector()
   >>> scol.collect(None)
-  >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='200', size='475', section='/cms'))
-  >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='200', size='475', section='/xyz'))
-  >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='200', size='475', section='/cms'))
+  >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='200', size='100', section='/cms'))
+  >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='200', size='75', section='/xyz'))
+  >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='500', size='20', section='/cms'))
   >>> scol.rollup()
-  {'/cms': 2, '/xyz': 1}
+  [{'section': '/cms', 'requests': 2, 'bytesout': 120, 'errors': 1}, {'section': '/xyz', 'requests': 1, 'bytesout': 75, 'errors': 0}]
   """
   def __init__(self):
     self.samples = []
     self.rollups = []
 
   def rollup(self):
-    ru = {}
+    all = {}
     for sample in self.samples:
-      try:
-        ru[sample['section']] += 1
-      except KeyError:
-        ru[sample['section']] = 1
-    return ru
+      section = sample['section']
+      if section in all.keys():
+        ru = all[section]
+      else:
+        ru = dict(section=section, requests=0, bytesout=0, errors=0)
+        all[section] = ru
+      ru['requests'] += 1
+      ru['bytesout'] += int(sample['size'])
+      if sample['status'][0] == '5':
+        ru['errors'] += 1
+    return list(all.values())
 
   def collect(self, sample):
     if sample:
