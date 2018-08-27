@@ -109,10 +109,12 @@ class Timer:
       return True
     return False
 
+TOP_X_CNT = 5
+
 class Display():
   def show_summary(self, rollups):
     print("Traffic Summary requests: XXX (ave XXX/sec) bytes out: XXX 500s: XXX")
-    for ru in rollups:
+    for ru in rollups[0:TOP_X_CNT]:
       print("{section} requests: {requests} bytes out: {bytesout} 500s: {errors}".format(**ru))
 
 class HighTrafficAlert:
