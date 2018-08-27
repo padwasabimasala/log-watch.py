@@ -74,7 +74,11 @@ class SampleCollector:
   def rollup(self):
     samples = self.samples.copy()
     self.samples = []
+    rollup = self.__calc_rollup(samples)
+    self.rollups.append(rollup)
+    return rollup
 
+  def __calc_rollup(self, samples):
     all = {}
     for sample in samples:
       section = sample['section']
@@ -96,7 +100,6 @@ class SampleCollector:
 
     res = sorted(all.values(), key=lambda rollup: rollup['requests'])
     res.reverse()
-    self.rollups.append(res)
     return res
 
   def collect(self, sample):
