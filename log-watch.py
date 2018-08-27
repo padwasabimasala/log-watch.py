@@ -56,14 +56,27 @@ class SampleCollector:
   >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='500', size='20', section='/cms'))
   >>> scol.rollup()
   [{'section': '/cms', 'requests': 2, 'bytesout': 120, 'errors': 1}, {'section': '/xyz', 'requests': 1, 'bytesout': 75, 'errors': 0}]
+  >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='200', size='75', section='/xyz'))
+  >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='200', size='100', section='/xyz'))
+  >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='500', size='20', section='/cms'))
+  >>> scol.rollup()
+  [{'section': '/xyz', 'requests': 2, 'bytesout': 175, 'errors': 0}, {'section': '/cms', 'requests': 1, 'bytesout': 20, 'errors': 1}]
+  >>> scol.rollups
+  [[{'section': '/cms', 'requests': 2, 'bytesout': 120, 'errors': 1}, {'section': '/xyz', 'requests': 1, 'bytesout': 75, 'errors': 0}], [{'section': '/xyz', 'requests': 2, 'bytesout': 175, 'errors': 0}, {'section': '/cms', 'requests': 1, 'bytesout': 20, 'errors': 1}]]
+  >>> scol.totals
+  {'requests': 6, 'bytesout': 390, 'errors': 2}
   """
   def __init__(self):
     self.samples = []
     self.rollups = []
+    self.totals = dict(requests=0, bytesout=0, errors=0)
 
   def rollup(self):
+    samples = self.samples.copy()
+    self.samples = []
+
     all = {}
-    for sample in self.samples:
+    for sample in samples:
       section = sample['section']
       if section in all.keys():
         ru = all[section]
@@ -71,14 +84,19 @@ class SampleCollector:
         ru = dict(section=section, requests=0, bytesout=0, errors=0)
         all[section] = ru
       ru['requests'] += 1
+      self.totals['requests'] += 1
       try:
         ru['bytesout'] += int(sample['size'])
+        self.totals['bytesout'] += int(sample['size'])
       except ValueError:
         pass
       if sample['status'][0] == '5':
         ru['errors'] += 1
+        self.totals['errors'] += 1
+
     res = sorted(all.values(), key=lambda rollup: rollup['requests'])
     res.reverse()
+    self.rollups.append(res)
     return res
 
   def collect(self, sample):
