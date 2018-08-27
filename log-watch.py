@@ -71,6 +71,10 @@ class SampleCollector:
     self.rollups = []
     self.totals = dict(requests=0, bytesout=0, errors=0)
 
+  def collect(self, sample):
+    if sample:
+      self.samples.append(sample)
+
   def rollup(self):
     samples = self.samples.copy()
     self.samples = []
@@ -100,10 +104,6 @@ class SampleCollector:
     res = sorted(all.values(), key=lambda rollup: rollup['requests'])
     res.reverse()
     return res
-
-  def collect(self, sample):
-    if sample:
-      self.samples.append(sample)
 
 class Timer:
   """
