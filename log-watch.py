@@ -97,7 +97,6 @@ class SampleCollector:
       if sample['status'][0] == '5':
         ru['errors'] += 1
         self.totals['errors'] += 1
-
     res = sorted(all.values(), key=lambda rollup: rollup['requests'])
     res.reverse()
     return res
