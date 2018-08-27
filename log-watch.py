@@ -147,8 +147,6 @@ class Timer:
       return elapsed_time
     return False
 
-TOP_X_CNT = 5
-
 class Display():
   def __init__(self):
     self.start_time = time.time()
@@ -170,6 +168,33 @@ class Display():
 
   def _curtime(self):
     return time.strftime("%H:%M:%S",time.localtime(time.time()))
+
+class HighTrafficMonitor():
+  """
+  >>> htm = HighTrafficMonitor(threshold=10, alert=lambda x: print("Alert %s" % x), resolve=lambda x: print("Resolved"))
+  >>> htm.check(1)
+  >>> htm.check(11)
+  Alert 11
+  >>> htm.check(12)
+  Alert 12
+  >>> htm.check(1)
+  Resolved
+  """
+
+  def __init__(self, threshold, alert, resolve):
+    self._active = False
+    self.threshold = threshold
+    self.alert = alert
+    self.resolve = resolve
+
+  def check(self, value):
+    if value > self.threshold:
+      self._active = True
+      self.alert(value)
+    else:
+      if self._active:
+        self._active = False
+        self.resolve(value)
 
 # [x] 0. Consume an actively written-to w3c-formatted HTTP access log
 # (https://en.wikipedia.org/wiki/Common_Log_Format). 
@@ -199,37 +224,11 @@ class Display():
 #
 # [x] 5. Write a test for the alerting logic.
 
-class HighTrafficMonitor():
-  """
-  >>> htm = HighTrafficMonitor(threshold=10, alert=lambda x: print("Alert %s" % x), resolve=lambda x: print("Resolved"))
-  >>> htm.check(1)
-  >>> htm.check(11)
-  Alert 11
-  >>> htm.check(12)
-  Alert 12
-  >>> htm.check(1)
-  Resolved
-  """
-
-  def __init__(self, threshold, alert, resolve):
-    self._active = False
-    self.threshold = threshold
-    self.alert = alert
-    self.resolve = resolve
-
-  def check(self, value):
-    if value > self.threshold:
-      self._active = True
-      self.alert(value)
-    else:
-      if self._active:
-        self._active = False
-        self.resolve(value)
-
 DEFAULT_LOG_FILE = '/var/log/access.log'
 DEFAULT_STATS_INTERVAL = 10
 DEFAULT_TRAFFIC_INTERVAL = 120 
 DEFAULT_HIGH_TRAFFIC_THRESHOLD = 10
+TOP_X_CNT = 5
 
 def main(fname):
   col = SampleCollector()
