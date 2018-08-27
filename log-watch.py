@@ -74,11 +74,11 @@ class SampleCollector:
   def rollup(self):
     samples = self.samples.copy()
     self.samples = []
-    rollup = self.__calc_rollup(samples)
+    rollup = self.__calc_rollup_and_totals(samples)
     self.rollups.append(rollup)
     return rollup
 
-  def __calc_rollup(self, samples):
+  def __calc_rollup_and_totals(self, samples):
     all = {}
     for sample in samples:
       section = sample['section']
