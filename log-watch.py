@@ -51,8 +51,8 @@ class SampleCollector:
   """
   >>> scol = SampleCollector()
   >>> scol.collect(None)
-  >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='200', size='100', section='/cms'))
   >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='200', size='75', section='/xyz'))
+  >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='200', size='100', section='/cms'))
   >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='500', size='20', section='/cms'))
   >>> scol.rollup()
   [{'section': '/cms', 'requests': 2, 'bytesout': 120, 'errors': 1}, {'section': '/xyz', 'requests': 1, 'bytesout': 75, 'errors': 0}]
@@ -74,7 +74,9 @@ class SampleCollector:
       ru['bytesout'] += int(sample['size'])
       if sample['status'][0] == '5':
         ru['errors'] += 1
-    return list(all.values())
+    res = sorted(all.values(), key=lambda rollup: rollup['requests'])
+    res.reverse()
+    return res
 
   def collect(self, sample):
     if sample:
