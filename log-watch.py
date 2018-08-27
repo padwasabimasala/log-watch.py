@@ -3,8 +3,8 @@ import sys
 import time
 from urllib.parse import urlparse
 
-# https://gist.github.com/sumeetpareek/9644255
 class Parser:
+  # https://gist.github.com/sumeetpareek/9644255
   # host ident authuser date request status bytes
   parts = [
       r'(?P<host>\S+)',                   # host %h
@@ -32,54 +32,19 @@ class Parser:
       return d
     return None
 
-# https://agrrh.com/2018/tail-follow-in-python
 def tailf(fname):
-    try:
-        fp = open(fname, 'r')
-    except IOError:
-        print('Could not open file')
-        sys.exit(1)
+  # https://agrrh.com/2018/tail-follow-in-python
+  try:
+      fp = open(fname, 'r')
+  except IOError:
+      print('Could not open file')
+      sys.exit(1)
 
-    fp.seek(0, 2)
-    while True:
-        line = fp.readline()
-        if line:
-            yield line.strip()
-        #time.sleep(0.001)
-
-# [x] 0. Consume an actively written-to w3c-formatted HTTP access log
-# (https://en.wikipedia.org/wiki/Common_Log_Format). 
-# Example: 127.0.0.1 - mary [09/May/2018:16:00:42 +0000] "GET /api/user HTTP/1.0" 200 1234
-# [x] - It should default to reading /var/log/access.log 
-# [x] - and be overridable
-#
-# [ ] 1. Display stats every 10s about the traffic during those 10s: 
-# [x] - the sections of the web site with the most hits
-# [ ] - interesting summary statistics on the traffic as a whole. 
-# 
-#   A section is defined as being what's before the second '/' in the path. 
-#   For example, the section for "http://my.site.com/pages/create” is
-#   "http://my.site.com/pages". 
-#
-# [x] 2. Make sure a user can keep the app running and monitor the log file continuously 
-#
-# [ ] 3. Whenever total traffic for the past 2 minutes exceeds a certain number on average, add
-# a message saying that “High traffic generated an alert - hits = {value},
-# triggered at {time}”. 
-# [ ] - The default threshold should be 10 requests per second
-# [ ] - it should be overridable.  
-# 
-# [ ] 4. Whenever the total traffic drops again below that value on average for the
-# past 2 minutes, print or displays another message detailing when the alert
-# recovered.  
-#
-# [ ] 5. Write a test for the alerting logic.
-
-# Notes/
-# Section size could be configured
-# sleep could be configured or null
-# timer in another thread?
-# run profiler
+  fp.seek(0, 2)
+  while True:
+      line = fp.readline()
+      if line:
+          yield line.strip()
 
 class StatsCollector:
   """
@@ -99,11 +64,6 @@ class StatsCollector:
     except KeyError:
       self.stats[stats['section']] = 1
 
-
-DEFAULT_LOG_FILE = '/var/log/access.log'
-DEFAULT_STATS_INTERVAL = 10
-DEFAULT_TRAFFIC_INTERVAL = 120 
-DEFAULT_HIGH_TRAFFIC_THRESHOLD = 10
 
 class Timer:
   """
@@ -162,6 +122,44 @@ class HighTrafficAlert:
         print(self.recovery.format(**dict(time=self.fmt_time(cur_time))))
       self.switch = False
   
+# [x] 0. Consume an actively written-to w3c-formatted HTTP access log
+# (https://en.wikipedia.org/wiki/Common_Log_Format). 
+# Example: 127.0.0.1 - mary [09/May/2018:16:00:42 +0000] "GET /api/user HTTP/1.0" 200 1234
+# [x] - It should default to reading /var/log/access.log 
+# [x] - and be overridable
+#
+# [ ] 1. Display stats every 10s about the traffic during those 10s: 
+# [x] - the sections of the web site with the most hits
+# [ ] - interesting summary statistics on the traffic as a whole. 
+# 
+#   A section is defined as being what's before the second '/' in the path. 
+#   For example, the section for "http://my.site.com/pages/create” is
+#   "http://my.site.com/pages". 
+#
+# [x] 2. Make sure a user can keep the app running and monitor the log file continuously 
+#
+# [ ] 3. Whenever total traffic for the past 2 minutes exceeds a certain number on average, add
+# a message saying that “High traffic generated an alert - hits = {value},
+# triggered at {time}”. 
+# [ ] - The default threshold should be 10 requests per second
+# [ ] - it should be overridable.  
+# 
+# [ ] 4. Whenever the total traffic drops again below that value on average for the
+# past 2 minutes, print or displays another message detailing when the alert
+# recovered.  
+#
+# [ ] 5. Write a test for the alerting logic.
+
+# Notes/
+# Section size could be configured
+# sleep could be configured or null
+# timer in another thread?
+# run profiler
+
+DEFAULT_LOG_FILE = '/var/log/access.log'
+DEFAULT_STATS_INTERVAL = 10
+DEFAULT_TRAFFIC_INTERVAL = 120 
+DEFAULT_HIGH_TRAFFIC_THRESHOLD = 10
 
 def main(fname):
   col = StatsCollector()
