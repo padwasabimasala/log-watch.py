@@ -155,12 +155,6 @@ class HighTrafficAlert:
 #
 # [ ] 5. Write a test for the alerting logic.
 
-# Notes/
-# Section size could be configured
-# sleep could be configured or null
-# timer in another thread?
-# run profiler
-
 DEFAULT_LOG_FILE = '/var/log/access.log'
 DEFAULT_STATS_INTERVAL = 10
 DEFAULT_TRAFFIC_INTERVAL = 120 
