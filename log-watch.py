@@ -136,53 +136,20 @@ class Display():
     self.start_time = time.time()
 
   def show_summary(self, rollup, totals):
-    reqs_ave = int(totals['requests'] / self.total_time())
-    print("Traffic Summary requests: {requests} ({reqs_ave} ave) bytes out: {bytesout} 500s: {errors}".format(**totals, **dict(reqs_ave=reqs_ave)))
+    ave = self._reqs_ave(totals['requests'])
+    print("Traffic Summary requests: {requests} ({ave} ave) bytes out: {bytesout} 500s: {errors}".format(**totals, **dict(ave=ave)))
     for ru in rollup[0:TOP_X_CNT]:
       print("{section} requests: {requests} bytes out: {bytesout} 500s: {errors}".format(**ru))
 
-  def total_time(self):
-    return time.time() - self.start_time
+  def show_alert(self, value):
+    print("High traffic generated an alert - hits = {0}, triggered at {1}".format(value, time=time.time()))
 
-class HighTrafficAlert:
-  # req/secs
-  """
-  >>> cur_time = 1535088782.4119601
-  >>> hta = HighTrafficAlert(10)
-  >>> hta.check(10, 100, cur_time)
-  >>> hta.check(600, 60, cur_time)
-  High traffic generated an alert - hits = 10.0, triggered at 23:33:02
-  >>> hta.check(1400, 70, cur_time)
-  High traffic generated an alert - hits = 20.0, triggered at 23:33:02
-  >>> hta.check(140, 70, cur_time)
-  High traffic recovered at 23:33:02
-  >>> hta.check(140, 70, cur_time)
-  >>> hta.check(140, 70, cur_time)
-  >>> hta.check(1400, 70, cur_time)
-  High traffic generated an alert - hits = 20.0, triggered at 23:33:02
-  """
+  def show_alert_resolution(self):
+    print("High traffic recovered at {0}".format(time=time.time()))
 
-  warning = "High traffic generated an alert - hits = {value}, triggered at {time}"
-  recovery = "High traffic recovered at {time}"
+  def _reqs_ave(self, reqs):
+    return int(reqs / (time.time() - self.start_time))
 
-  def __init__(self, threshold):
-    self.threshold = threshold
-    self.switch = False
-
-  def check(self, reqs, elapsed_time, cur_time):
-    reqs_per_sec = (reqs / elapsed_time)
-    if reqs_per_sec >= self.threshold:
-      self.switch = True
-      print(self.warning.format(**dict(value=reqs_per_sec, time=self.fmt_time(cur_time))))
-    else:
-      if self.switch:
-        print(self.recovery.format(**dict(time=self.fmt_time(cur_time))))
-      self.switch = False
-
-  def fmt_time(self, t):
-    return time.strftime("%H:%M:%S",time.localtime(t))
-
-  
 # [x] 0. Consume an actively written-to w3c-formatted HTTP access log
 # (https://en.wikipedia.org/wiki/Common_Log_Format). 
 # Example: 127.0.0.1 - mary [09/May/2018:16:00:42 +0000] "GET /api/user HTTP/1.0" 200 1234
@@ -211,6 +178,33 @@ class HighTrafficAlert:
 #
 # [x] 5. Write a test for the alerting logic.
 
+class HighTrafficMonitor():
+  """
+  >>> htm = HighTrafficMonitor(threshold=10, alert=lambda x: print("Alert %s" % x), resolve=lambda x: print("Resolved"))
+  >>> htm.check(1)
+  >>> htm.check(11)
+  Alert 11
+  >>> htm.check(12)
+  Alert 12
+  >>> htm.check(1)
+  Resolved
+  """
+
+  def __init__(self, threshold, alert, resolve):
+    self._active = False
+    self.threshold = threshold
+    self.alert = alert
+    self.resolve = resolve
+
+  def check(self, value):
+    if value > self.threshold:
+      self._active = True
+      self.alert(value)
+    else:
+      if self._active:
+        self._active = False
+        self.resolve(value)
+
 DEFAULT_LOG_FILE = '/var/log/access.log'
 DEFAULT_STATS_INTERVAL = 10
 DEFAULT_TRAFFIC_INTERVAL = 120 
@@ -221,20 +215,17 @@ def main(fname):
   display = Display()
   summary_timer = Timer(1)
   alert_timer = Timer(5)
+  htm = HighTrafficMonitor(threshold=10, alert=lambda x: display.show_alert(x), resolve=display.show_alert_resolution)
 
   for line in tailf(fname):
       samples = Parser.parse(line)
       col.collect(samples)
-      elapsed_time = summary_timer.is_done()
-      if elapsed_time:
+      if summary_timer.is_done():
         rollups = col.rollup()
         display.show_summary(rollups, col.totals)
-        if alert_timer.is_done():
-          # sum all rollups
-          # compute averages
-          # if any alerts: resolve if now below average
-          # alert if over allowed average
-          print("Alert!")
+        elapsed_time = alert_timer.is_done()
+        if elapsed_time: 
+          htm.check(elapsed_time)
 
 if __name__ == '__main__':
   try:
