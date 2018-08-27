@@ -111,10 +111,10 @@ class Timer:
   >>> t.is_done()
   False
   >>> time.sleep(0.1)
-  >>> t.is_done()
+  >>> elapsed_time = t.is_done()
+  >>> elapsed_time > 0.1 
   True
-  >>> t = Timer(10)
-  >>> t.is_done(time.time()+10)
+  >>> elapsed_time < 0.11
   True
   """
 
@@ -122,25 +122,27 @@ class Timer:
     self.start = time.time()
     self.seconds = seconds
 
-  def is_done(self, curtime=None):
-    elapsed_time = (curtime or time.time()) - self.start
+  def is_done(self):
+    elapsed_time = time.time() - self.start
     if elapsed_time >= self.seconds:
       self.start = time.time()
-      return True
+      return elapsed_time
     return False
 
 TOP_X_CNT = 5
 
 class Display():
-  def __init__(self, collector):
-    self.col = collector
+  def __init__(self):
+    self.start_time = time.time()
 
-  def show_summary(self):
-    print("Traffic Summary requests: {requests} bytes out: {bytesout} 500s: {errors}".format(**self.col.totals))
-    latest_rollups = self.col.rollups[-1]
-    for ru in latest_rollups[0:TOP_X_CNT]:
-      # TD Add even column spacing
+  def show_summary(self, rollup, totals):
+    reqs_ave = int(totals['requests'] / self.total_time())
+    print("Traffic Summary requests: {requests} ({reqs_ave} ave) bytes out: {bytesout} 500s: {errors}".format(**totals, **dict(reqs_ave=reqs_ave)))
+    for ru in rollup[0:TOP_X_CNT]:
       print("{section} requests: {requests} bytes out: {bytesout} 500s: {errors}".format(**ru))
+
+  def total_time(self):
+    return time.time() - self.start_time
 
 class HighTrafficAlert:
   # req/secs
@@ -163,9 +165,6 @@ class HighTrafficAlert:
   warning = "High traffic generated an alert - hits = {value}, triggered at {time}"
   recovery = "High traffic recovered at {time}"
 
-  def fmt_time(self, t):
-    return time.strftime("%H:%M:%S",time.localtime(t))
-
   def __init__(self, threshold):
     self.threshold = threshold
     self.switch = False
@@ -179,6 +178,10 @@ class HighTrafficAlert:
       if self.switch:
         print(self.recovery.format(**dict(time=self.fmt_time(cur_time))))
       self.switch = False
+
+  def fmt_time(self, t):
+    return time.strftime("%H:%M:%S",time.localtime(t))
+
   
 # [x] 0. Consume an actively written-to w3c-formatted HTTP access log
 # (https://en.wikipedia.org/wiki/Common_Log_Format). 
@@ -186,9 +189,9 @@ class HighTrafficAlert:
 # [x] - It should default to reading /var/log/access.log 
 # [x] - and be overridable
 #
-# [ ] 1. Display stats every 10s about the traffic during those 10s: 
+# [s] 1. Display stats every 10s about the traffic during those 10s: 
 # [x] - the sections of the web site with the most hits
-# [ ] - interesting summary statistics on the traffic as a whole. 
+# [x] - interesting summary statistics on the traffic as a whole. 
 # 
 #   A section is defined as being what's before the second '/' in the path. 
 #   For example, the section for "http://my.site.com/pages/create” is
@@ -206,7 +209,7 @@ class HighTrafficAlert:
 # past 2 minutes, print or displays another message detailing when the alert
 # recovered.  
 #
-# [ ] 5. Write a test for the alerting logic.
+# [x] 5. Write a test for the alerting logic.
 
 DEFAULT_LOG_FILE = '/var/log/access.log'
 DEFAULT_STATS_INTERVAL = 10
@@ -215,17 +218,22 @@ DEFAULT_HIGH_TRAFFIC_THRESHOLD = 10
 
 def main(fname):
   col = SampleCollector()
-  display = Display(col)
+  display = Display()
   summary_timer = Timer(1)
   alert_timer = Timer(5)
 
   for line in tailf(fname):
       samples = Parser.parse(line)
       col.collect(samples)
-      if summary_timer.is_done():
+      elapsed_time = summary_timer.is_done()
+      if elapsed_time:
         rollups = col.rollup()
-        display.show_summary()
+        display.show_summary(rollups, col.totals)
         if alert_timer.is_done():
+          # sum all rollups
+          # compute averages
+          # if any alerts: resolve if now below average
+          # alert if over allowed average
           print("Alert!")
 
 if __name__ == '__main__':
@@ -233,7 +241,4 @@ if __name__ == '__main__':
       fname = sys.argv[1]
   except IndexError:
       fname = DEFAULT_LOG_FILE
-
-  #import profile
-  #profile.run("main()")
   main(fname)
