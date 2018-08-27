@@ -132,9 +132,14 @@ class Timer:
 TOP_X_CNT = 5
 
 class Display():
-  def show_summary(self, rollups):
-    print("Traffic Summary requests: XXX (ave XXX/sec) bytes out: XXX 500s: XXX")
-    for ru in rollups[0:TOP_X_CNT]:
+  def __init__(self, collector):
+    self.col = collector
+
+  def show_summary(self):
+    print("Traffic Summary requests: {requests} bytes out: {bytesout} 500s: {errors}".format(**self.col.totals))
+    latest_rollups = self.col.rollups[-1]
+    for ru in latest_rollups[0:TOP_X_CNT]:
+      # TD Add even column spacing
       print("{section} requests: {requests} bytes out: {bytesout} 500s: {errors}".format(**ru))
 
 class HighTrafficAlert:
@@ -210,7 +215,7 @@ DEFAULT_HIGH_TRAFFIC_THRESHOLD = 10
 
 def main(fname):
   col = SampleCollector()
-  display = Display()
+  display = Display(col)
   summary_timer = Timer(1)
   alert_timer = Timer(5)
 
@@ -219,7 +224,7 @@ def main(fname):
       col.collect(samples)
       if summary_timer.is_done():
         rollups = col.rollup()
-        display.show_summary(rollups)
+        display.show_summary()
         if alert_timer.is_done():
           print("Alert!")
 
