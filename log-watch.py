@@ -71,7 +71,10 @@ class SampleCollector:
         ru = dict(section=section, requests=0, bytesout=0, errors=0)
         all[section] = ru
       ru['requests'] += 1
-      ru['bytesout'] += int(sample['size'])
+      try:
+        ru['bytesout'] += int(sample['size'])
+      except ValueError:
+        pass
       if sample['status'][0] == '5':
         ru['errors'] += 1
     res = sorted(all.values(), key=lambda rollup: rollup['requests'])
