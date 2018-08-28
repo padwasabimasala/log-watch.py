@@ -1,7 +1,14 @@
 import re
 import sys
 import time
+import argparse
 from urllib.parse import urlparse
+
+DEFAULT_LOG_FILE = '/var/log/access.log'
+DEFAULT_STATS_TIMER_SECS = 10
+DEFAULT_ALERT_TIMER_SECS = 120 
+DEFAULT_ALERT_THRESHOLD = 10
+DEFAULT_NUMBER_OF_RESULTS = 10
 
 class Parser:
   # https://gist.github.com/sumeetpareek/9644255
@@ -147,14 +154,15 @@ class Timer:
       return elapsed_time
     return False
 
-class Display():
-  def __init__(self):
+class Display:
+  def __init__(self, num_results):
     self.start_time = time.time()
+    self.num_results = num_results
 
   def show_summary(self, rollup, totals):
     ave = self._reqs_ave(totals['requests'])
-    print("Traffic Summary requests: {requests} ({ave} ave) bytes out: {bytesout} 500s: {errors}".format(**totals, **dict(ave=ave)))
-    for ru in rollup[0:TOP_X_CNT]:
+    print("Traffic Summary requests: {requests} ({ave} rps) bytes out: {bytesout} 500s: {errors}".format(**totals, **dict(ave=ave)))
+    for ru in rollup[0:self.num_results]:
       print("{section} requests: {requests} bytes out: {bytesout} 500s: {errors}".format(**ru))
 
   def show_alert(self, value):
@@ -224,23 +232,17 @@ class HighTrafficMonitor():
 #
 # [x] 5. Write a test for the alerting logic.
 
-DEFAULT_LOG_FILE = '/var/log/access.log'
-DEFAULT_STATS_INTERVAL = 10
-DEFAULT_TRAFFIC_INTERVAL = 120 
-DEFAULT_HIGH_TRAFFIC_THRESHOLD = 10
-TOP_X_CNT = 5
-
-def main(fname):
+def main(args):
   col = SampleCollector()
-  display = Display()
-  summary_timer = Timer(1)
-  alert_timer = Timer(5)
-  htm = HighTrafficMonitor(threshold=10, alert=display.show_alert, resolve=display.show_alert_resolution)
+  display = Display(args.results)
+  alerts_timer = Timer(args.stats_timer)
+  alert_timer = Timer(args.alerts_timer)
+  htm = HighTrafficMonitor(threshold=args.alerts_threshold, alert=display.show_alert, resolve=display.show_alert_resolution)
 
-  for line in tailf(fname):
+  for line in tailf(args.file):
       samples = Parser.parse(line)
       col.collect(samples)
-      if summary_timer.is_done():
+      if alerts_timer.is_done():
         rollup = col.rollup()
         display.show_summary(rollup, col.totals)
         elapsed_time = alert_timer.is_done()
@@ -249,8 +251,11 @@ def main(fname):
           col.clear()
 
 if __name__ == '__main__':
-  try:
-      fname = sys.argv[1]
-  except IndexError:
-      fname = DEFAULT_LOG_FILE
-  main(fname)
+  parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+  parser.add_argument('file', nargs='?', help="common log formated file to watch", default=DEFAULT_LOG_FILE)
+  parser.add_argument('--stats-timer', '-s', nargs='?', help="number seconds to wait before updating stats", default=DEFAULT_STATS_TIMER_SECS, type=int)
+  parser.add_argument('--alerts-timer', '-a', nargs='?', help="number seconds to wait before updating alerts", default=DEFAULT_ALERT_TIMER_SECS, type=int)
+  parser.add_argument('--alerts-threshold', '-t', nargs='?', help="number of requests/per second to trigger an alert", default=DEFAULT_ALERT_THRESHOLD, type=int)
+  parser.add_argument('--results', '-r', nargs='?', help="number of top sections to display stats for", default=DEFAULT_NUMBER_OF_RESULTS, type=int)
+  args = parser.parse_args()
+  main(args)
