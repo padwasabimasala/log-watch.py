@@ -4,6 +4,28 @@ import time
 import argparse
 from urllib.parse import urlparse
 
+""" log-watch.py
+
+  Tails a common log formatted file and reports useful statistics and alerts for high traffic.
+
+  usage: log-watch.py [-h] [--stats-timer [STATS_TIMER]]
+                    [--alerts-timer [ALERTS_TIMER]]
+                    [--alerts-threshold [ALERTS_THRESHOLD]]
+                    [--results [RESULTS]]
+                    [file]
+
+   positional arguments:
+     file                  common log formated file to watch (default:
+                           /var/log/access.log)
+   
+   optional arguments:
+     -h, --help            show this help message and exit
+     --stats-timer [STATS_TIMER], -s [STATS_TIMER] number seconds to wait before updating stats (default: 10)
+     --alerts-timer [ALERTS_TIMER], -a [ALERTS_TIMER] number seconds to wait before updating alerts (default: 120)
+     --alerts-threshold [ALERTS_THRESHOLD], -t [ALERTS_THRESHOLD] number of requests/per second to trigger an alert (default: 10)
+     --results [RESULTS], -r [RESULTS] number of top sections to display stats for (default: 10)
+"""
+
 DEFAULT_LOG_FILE = '/var/log/access.log'
 DEFAULT_STATS_TIMER_SECS = 10
 DEFAULT_ALERT_TIMER_SECS = 120 
@@ -11,8 +33,9 @@ DEFAULT_ALERT_THRESHOLD = 10
 DEFAULT_NUMBER_OF_RESULTS = 10
 
 class Parser:
+  """ Parse common log formatted string into dict """
+
   # https://gist.github.com/sumeetpareek/9644255
-  # host ident authuser date request status bytes
   parts = [
       r'(?P<host>\S+)',                   # host %h
       r'(?P<ident>\S+)',                  # ident %l
@@ -40,6 +63,8 @@ class Parser:
     return None
 
 def tailf(fname):
+  """ Tail file and yield each line """
+
   # https://agrrh.com/2018/tail-follow-in-python
   try:
       fp = open(fname, 'r')
@@ -54,8 +79,13 @@ def tailf(fname):
           yield line.strip()
 
 class SampleCollector:
-  # host, user, method, status, size section
   """
+  Collect samples of parsed log data
+
+  Calculate totals for requests, bytesout, and errors
+
+  Rollup samples and store rollups until clear is called
+
   >>> scol = SampleCollector()
   >>> scol.collect(None)
   >>> scol.collect(dict(host='155.80.44.115', user='bobbyt', method='GET', status='200', size='75', section='/xyz'))
@@ -132,6 +162,8 @@ class SampleCollector:
 
 class Timer:
   """
+  Simple timer
+
   >>> t = Timer(0.1)
   >>> t.is_done()
   False
@@ -155,6 +187,8 @@ class Timer:
     return False
 
 class Display:
+  """ Write stats and alerts to the screen """
+
   def __init__(self, num_results):
     self.start_time = time.time()
     self.num_results = num_results
@@ -179,6 +213,8 @@ class Display:
 
 class HighTrafficMonitor():
   """
+  Trigger alert and resolve callbacks when threshold reached or resolved
+
   >>> htm = HighTrafficMonitor(threshold=10, alert=lambda x: print("Alert %s" % x), resolve=lambda x: print("Resolved"))
   >>> htm.check(1)
   >>> htm.check(11)
@@ -205,6 +241,8 @@ class HighTrafficMonitor():
         self.resolve(value)
 
 def main(args):
+  """ main loop """
+
   col = SampleCollector()
   display = Display(args.results)
   alerts_timer = Timer(args.stats_timer)
