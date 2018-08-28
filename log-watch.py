@@ -204,34 +204,6 @@ class HighTrafficMonitor():
         self._active = False
         self.resolve(value)
 
-# [x] 0. Consume an actively written-to w3c-formatted HTTP access log
-# (https://en.wikipedia.org/wiki/Common_Log_Format). 
-# Example: 127.0.0.1 - mary [09/May/2018:16:00:42 +0000] "GET /api/user HTTP/1.0" 200 1234
-# [x] - It should default to reading /var/log/access.log 
-# [x] - and be overridable
-#
-# [s] 1. Display stats every 10s about the traffic during those 10s: 
-# [x] - the sections of the web site with the most hits
-# [x] - interesting summary statistics on the traffic as a whole. 
-# 
-#   A section is defined as being what's before the second '/' in the path. 
-#   For example, the section for "http://my.site.com/pages/create” is
-#   "http://my.site.com/pages". 
-#
-# [x] 2. Make sure a user can keep the app running and monitor the log file continuously 
-#
-# [x] 3. Whenever total traffic for the past 2 minutes exceeds a certain number on average, add
-# a message saying that “High traffic generated an alert - hits = {value},
-# triggered at {time}”. 
-# [x] - The default threshold should be 10 requests per second
-# [ ] - it should be overridable.  
-# 
-# [x] 4. Whenever the total traffic drops again below that value on average for the
-# past 2 minutes, print or displays another message detailing when the alert
-# recovered.  
-#
-# [x] 5. Write a test for the alerting logic.
-
 def main(args):
   col = SampleCollector()
   display = Display(args.results)
