@@ -29,6 +29,10 @@ log-watch.py --help
      --results [RESULTS], -r [RESULTS] number of top sections to display stats for (default: 10)
 ```
 
+## Docker build
+
+`docker build -t log-watch .`
+
 ## License
 
 Other authors works copy right the original author.
